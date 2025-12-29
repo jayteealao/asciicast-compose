@@ -21,7 +21,7 @@ kotlin {
         iosSimulatorArm64(),
     ).forEach { iosTarget ->
         iosTarget.binaries.framework {
-            baseName = "lib"
+            baseName = "AsciicastCompose"
             isStatic = true
         }
     }
@@ -56,7 +56,7 @@ kotlin {
 
 android {
     compileSdk = (findProperty("android.compileSdk") as String).toInt()
-    namespace = "com.myapplication.common"
+    namespace = "uk.adedamola.asciicast"
 
     sourceSets["main"].manifest.srcFile("src/androidMain/AndroidManifest.xml")
     sourceSets["main"].res.srcDirs("src/androidMain/res")
@@ -79,13 +79,13 @@ mavenPublishing {
     // or when publishing to https://s01.oss.sonatype.org
     publishToMavenCentral(SonatypeHost.S01, automaticRelease = true)
     signAllPublications()
-    coordinates("com.example.mylibrary", "mylibrary-runtime", "1.0.0")
+    coordinates("uk.adedamola", "asciicast-compose", "0.1.0")
 
     pom {
         name.set(project.name)
-        description.set("A description of what my library does.")
-        inceptionYear.set("2023")
-        url.set("https://github.com/username/mylibrary/")
+        description.set("A Compose Multiplatform library for rendering and composing asciinema recordings")
+        inceptionYear.set("2025")
+        url.set("https://github.com/jayteealao/asciicast-compose/")
         licenses {
             license {
                 name.set("The Apache License, Version 2.0")
@@ -95,15 +95,15 @@ mavenPublishing {
         }
         developers {
             developer {
-                id.set("username")
-                name.set("User Name")
-                url.set("https://github.com/username/")
+                id.set("jayteealao")
+                name.set("Adedamola Adeyemi")
+                url.set("https://github.com/jayteealao/")
             }
         }
         scm {
-            url.set("https://github.com/username/mylibrary/")
-            connection.set("scm:git:git://github.com/username/mylibrary.git")
-            developerConnection.set("scm:git:ssh://git@github.com/username/mylibrary.git")
+            url.set("https://github.com/jayteealao/asciicast-compose/")
+            connection.set("scm:git:git://github.com/jayteealao/asciicast-compose.git")
+            developerConnection.set("scm:git:ssh://git@github.com/jayteealao/asciicast-compose.git")
         }
     }
 }

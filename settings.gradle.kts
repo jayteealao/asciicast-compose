@@ -1,4 +1,4 @@
-rootProject.name = "compose-multiplatform-library-template"
+rootProject.name = "asciicast-compose"
 
 include(":sample:androidApp")
 include(":lib")
@@ -35,9 +35,10 @@ pluginManagement {
     }
 }
 
-plugins {
-    id("org.gradle.toolchains.foojay-resolver-convention") version("0.4.0")
-}
+// Temporarily disabled due to network restrictions
+// plugins {
+//     id("org.gradle.toolchains.foojay-resolver-convention") version("0.4.0")
+// }
 
 dependencyResolutionManagement {
     repositories {
