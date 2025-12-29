@@ -1,9 +1,22 @@
 rootProject.name = "asciicast-compose"
 
-include(":sample:androidApp")
+// Core library modules
+include(":vt-api")
+include(":formats")
+include(":streaming-alis")
+include(":player-core")
+include(":renderer-compose")
+
+// Virtual Terminal backend implementations
+include(":vt-avt")
+include(":vt-jediterm")
+include(":vt-termux")
+
+// Sample application
+include(":sample-app")
+
+// Legacy modules (will be removed after migration)
 include(":lib")
-include(":sample:desktopApp")
-include(":sample:shared")
 
 pluginManagement {
     repositories {
