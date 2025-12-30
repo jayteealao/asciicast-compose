@@ -38,6 +38,7 @@ class LiveSource(
         return suspendCoroutine { continuation ->
             val request = Request.Builder()
                 .url(url)
+                .addHeader("Sec-WebSocket-Protocol", "v1.alis") // ALiS v1 subprotocol
                 .build()
 
             val listener = object : WebSocketListener() {

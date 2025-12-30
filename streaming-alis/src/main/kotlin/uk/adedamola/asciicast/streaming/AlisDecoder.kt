@@ -120,40 +120,45 @@ class AlisDecoder {
     }
 
     /**
-     * Decode theme based on variant.
+     * Decode theme based on format byte.
      *
-     * Variants:
-     * - 0: None (no theme)
-     * - 1: 8-color palette
-     * - 2: 16-color palette
+     * Per official spec: https://docs.asciinema.org/manual/server/streaming/
+     * Format bytes:
+     * - 0x00: None (no theme)
+     * - 0x08: 8-color palette
+     * - 0x10: 16-color palette
      */
-    private fun decodeTheme(source: BufferedSource, variant: Int): Theme? {
-        return when (variant) {
-            0 -> null // No theme
+    private fun decodeTheme(source: BufferedSource, format: Int): Theme? {
+        return when (format) {
+            0x00 -> null // No theme
 
-            1 -> {
-                // 8-color palette
-                val palette = (0 until 8).map {
-                    val r = source.readByte().toInt() and 0xFF
-                    val g = source.readByte().toInt() and 0xFF
-                    val b = source.readByte().toInt() and 0xFF
-                    uk.adedamola.asciicast.vt.Color.Rgb(r, g, b)
-                }
-                Theme(palette8 = palette)
+            0x08 -> {
+                // 8-color palette: foreground, background, then 8 palette colors
+                val fg = readRgb(source)
+                val bg = readRgb(source)
+                val palette = (0 until 8).map { readRgb(source) }
+                Theme(foreground = fg, background = bg, palette8 = palette)
             }
 
-            2 -> {
-                // 16-color palette
-                val palette = (0 until 16).map {
-                    val r = source.readByte().toInt() and 0xFF
-                    val g = source.readByte().toInt() and 0xFF
-                    val b = source.readByte().toInt() and 0xFF
-                    uk.adedamola.asciicast.vt.Color.Rgb(r, g, b)
-                }
-                Theme(palette16 = palette)
+            0x10 -> {
+                // 16-color palette: foreground, background, then 16 palette colors
+                val fg = readRgb(source)
+                val bg = readRgb(source)
+                val palette = (0 until 16).map { readRgb(source) }
+                Theme(foreground = fg, background = bg, palette16 = palette)
             }
 
-            else -> null // Unknown variant, ignore
+            else -> null // Unknown format, ignore
         }
+    }
+
+    /**
+     * Read RGB color from source (3 bytes).
+     */
+    private fun readRgb(source: BufferedSource): uk.adedamola.asciicast.vt.Color.Rgb {
+        val r = source.readByte().toInt() and 0xFF
+        val g = source.readByte().toInt() and 0xFF
+        val b = source.readByte().toInt() and 0xFF
+        return uk.adedamola.asciicast.vt.Color.Rgb(r, g, b)
     }
 }

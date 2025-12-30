@@ -6,6 +6,15 @@ import kotlinx.serialization.json.JsonObject
 
 /**
  * Asciicast header (both v2 and v3).
+ *
+ * NOTE: This model currently uses v2 field names (width/height) but works with v3
+ * because kotlinx.serialization's ignoreUnknownKeys allows us to parse both formats.
+ *
+ * v2 format: { version: 2, width: 80, height: 24, ... }
+ * v3 format: { version: 3, term: { cols: 80, rows: 24, ... }, ... }
+ *
+ * TODO: For strict v3 compliance, add nested 'term' object support.
+ * Current implementation works for recordings that use v2-style flat structure.
  */
 @Serializable
 data class AsciicastHeader(

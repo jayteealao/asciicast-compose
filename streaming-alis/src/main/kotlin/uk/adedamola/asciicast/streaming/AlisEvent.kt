@@ -4,14 +4,18 @@ import uk.adedamola.asciicast.vt.Theme
 
 /**
  * ALiS v1 event types.
+ *
+ * Per official spec: https://docs.asciinema.org/manual/server/streaming/
+ * Most event types use ASCII character codes (o, i, r, m, x)
  */
 object AlisEventType {
-    const val INIT: Byte = 0x01
-    const val OUTPUT: Byte = 0x02
-    const val RESIZE: Byte = 0x03
-    const val MARKER: Byte = 0x04
-    const val EXIT: Byte = 0x05
-    const val EOT: Byte = 0x06
+    const val INIT: Byte = 0x01    // Init event
+    const val OUTPUT: Byte = 0x6F  // 'o' - Output event (111 decimal)
+    const val INPUT: Byte = 0x69   // 'i' - Input event (105 decimal)
+    const val RESIZE: Byte = 0x72  // 'r' - Resize event (114 decimal)
+    const val MARKER: Byte = 0x6D  // 'm' - Marker event (109 decimal)
+    const val EXIT: Byte = 0x78    // 'x' - Exit event (120 decimal)
+    const val EOT: Byte = 0x04     // End of transmission (4 decimal)
 }
 
 /**

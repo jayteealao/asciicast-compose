@@ -19,12 +19,12 @@ class AlisDecoderTest {
     @Test
     fun `decode Init event without theme`() {
         val buffer = Buffer()
-        buffer.writeByte(AlisEventType.INIT.toInt())
+        buffer.writeByte(0x01) // Init event
         LEB128.writeUnsigned(buffer, 0L) // lastId
         LEB128.writeUnsigned(buffer, 1_000_000L) // relTimeMicros
         LEB128.writeUnsigned(buffer, 80L) // cols
         LEB128.writeUnsigned(buffer, 24L) // rows
-        LEB128.writeUnsigned(buffer, 0L) // theme variant (none)
+        LEB128.writeUnsigned(buffer, 0x00L) // theme format (none)
         buffer.writeByte(0) // no initData
 
         val event = decoder.decode(buffer.readByteArray())
@@ -41,12 +41,12 @@ class AlisDecoderTest {
     @Test
     fun `decode Init event with initData`() {
         val buffer = Buffer()
-        buffer.writeByte(AlisEventType.INIT.toInt())
+        buffer.writeByte(0x01) // Init event
         LEB128.writeUnsigned(buffer, 0L) // lastId
         LEB128.writeUnsigned(buffer, 0L) // relTimeMicros
         LEB128.writeUnsigned(buffer, 80L) // cols
         LEB128.writeUnsigned(buffer, 24L) // rows
-        LEB128.writeUnsigned(buffer, 0L) // theme variant (none)
+        LEB128.writeUnsigned(buffer, 0x00L) // theme format (none)
         buffer.writeByte(1) // has initData
         LEB128.writeUnsigned(buffer, 6L) // initData length
         buffer.writeUtf8("$ echo") // initData
@@ -60,7 +60,7 @@ class AlisDecoderTest {
     @Test
     fun `decode Output event`() {
         val buffer = Buffer()
-        buffer.writeByte(AlisEventType.OUTPUT.toInt())
+        buffer.writeByte(0x6F) // 'o' - Output event
         LEB128.writeUnsigned(buffer, 1L) // id
         LEB128.writeUnsigned(buffer, 500_000L) // relTimeMicros
         LEB128.writeUnsigned(buffer, 5L) // data length
@@ -77,7 +77,7 @@ class AlisDecoderTest {
     @Test
     fun `decode Resize event`() {
         val buffer = Buffer()
-        buffer.writeByte(AlisEventType.RESIZE.toInt())
+        buffer.writeByte(0x72) // 'r' - Resize event
         LEB128.writeUnsigned(buffer, 2L) // id
         LEB128.writeUnsigned(buffer, 100_000L) // relTimeMicros
         LEB128.writeUnsigned(buffer, 120L) // cols
@@ -95,7 +95,7 @@ class AlisDecoderTest {
     @Test
     fun `decode Marker event`() {
         val buffer = Buffer()
-        buffer.writeByte(AlisEventType.MARKER.toInt())
+        buffer.writeByte(0x6D) // 'm' - Marker event
         LEB128.writeUnsigned(buffer, 3L) // id
         LEB128.writeUnsigned(buffer, 1_000_000L) // relTimeMicros
         LEB128.writeUnsigned(buffer, 9L) // label length
@@ -112,7 +112,7 @@ class AlisDecoderTest {
     @Test
     fun `decode Exit event`() {
         val buffer = Buffer()
-        buffer.writeByte(AlisEventType.EXIT.toInt())
+        buffer.writeByte(0x78) // 'x' - Exit event
         LEB128.writeUnsigned(buffer, 4L) // id
         LEB128.writeUnsigned(buffer, 5_000_000L) // relTimeMicros
         LEB128.writeUnsigned(buffer, 0L) // status
@@ -128,7 +128,7 @@ class AlisDecoderTest {
     @Test
     fun `decode EOT event`() {
         val buffer = Buffer()
-        buffer.writeByte(AlisEventType.EOT.toInt())
+        buffer.writeByte(0x04) // EOT event
         LEB128.writeUnsigned(buffer, 10_000_000L) // relTimeMicros
 
         val event = decoder.decode(buffer.readByteArray())
