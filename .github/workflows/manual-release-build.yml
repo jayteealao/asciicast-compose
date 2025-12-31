@@ -1,0 +1,161 @@
+name: Manual Sample App Build
+
+on:
+  workflow_dispatch:
+    inputs:
+      version_name:
+        description: 'Version name (e.g., 0.1.0, 0.1.0-alpha)'
+        required: true
+        default: '0.1.0'
+      create_release:
+        description: 'Create a GitHub release?'
+        required: true
+        type: boolean
+        default: false
+
+jobs:
+  build-sample-app:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Gradle cache
+        uses: gradle/actions/setup-gradle@v3
+
+      - name: Fix gradlew perms & line endings
+        run: |
+          sed -i 's/\r$//' gradlew
+          chmod +x gradlew
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+        with:
+          packages: platform-tools platforms;android-34 build-tools;34.0.0
+
+      - name: Check for signing secrets
+        id: has_signing
+        env:
+          B64: ${{ secrets.SIGNING_STORE_FILE_B64 }}
+        run: |
+          if [ -n "$B64" ]; then echo "present=true" >> "$GITHUB_OUTPUT"; else echo "present=false" >> "$GITHUB_OUTPUT"; fi
+
+      - name: Decode keystore
+        if: ${{ steps.has_signing.outputs.present == 'true' }}
+        env:
+          SIGNING_STORE_FILE_B64: ${{ secrets.SIGNING_STORE_FILE_B64 }}
+        run: |
+          echo "$SIGNING_STORE_FILE_B64" | base64 -d > keystore.jks
+
+      - name: Write signing properties
+        if: ${{ steps.has_signing.outputs.present == 'true' }}
+        run: |
+          {
+            echo "SIGNING_STORE_FILE=$(pwd)/keystore.jks"
+            echo "SIGNING_STORE_PASSWORD=${{ secrets.SIGNING_STORE_PASSWORD }}"
+            echo "SIGNING_KEY_ALIAS=${{ secrets.SIGNING_KEY_ALIAS }}"
+            echo "SIGNING_KEY_PASSWORD=${{ secrets.SIGNING_KEY_PASSWORD }}"
+          } >> $GITHUB_ENV
+
+      - name: Build Sample App (Release if signed, Debug otherwise)
+        run: |
+          if [ "${{ steps.has_signing.outputs.present }}" == "true" ]; then
+            echo "Building signed release APK..."
+            ./gradlew --no-daemon :sample-app:assembleRelease
+          else
+            echo "No signing secrets found, building debug APK..."
+            ./gradlew --no-daemon :sample-app:assembleDebug
+          fi
+
+      - name: Find outputs
+        id: find_outputs
+        run: |
+          VERSION="${{ github.event.inputs.version_name }}"
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+
+          # Look for release APK first, then debug
+          APK=$(find sample-app/build/outputs/apk -type f -name "*.apk" ! -name "*-unsigned.apk" ! -name "*-unaligned.apk" | head -n1)
+
+          echo "=== DEBUG: Found files ==="
+          echo "APK: ${APK}"
+          echo "=========================="
+
+          if [ -z "$APK" ]; then
+            echo "WARNING: No APK found!"
+            echo "Listing all APK files:"
+            find sample-app/build/outputs/apk -name "*.apk" -type f || echo "No APK directory found"
+          fi
+
+          echo "apk=${APK}" >> "$GITHUB_OUTPUT"
+
+          # Determine build type from APK path
+          if [[ "$APK" == *"release"* ]]; then
+            echo "build_type=release" >> "$GITHUB_OUTPUT"
+          else
+            echo "build_type=debug" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Upload APK artifact
+        if: ${{ steps.find_outputs.outputs.apk != '' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: asciicast-compose-sample-v${{ github.event.inputs.version_name }}-${{ steps.find_outputs.outputs.build_type }}.apk
+          retention-days: 30
+          path: ${{ steps.find_outputs.outputs.apk }}
+
+      - name: Upload APK artifact (fallback - find any APK)
+        if: ${{ steps.find_outputs.outputs.apk == '' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: asciicast-compose-sample-v${{ github.event.inputs.version_name }}-all-apks
+          retention-days: 30
+          path: |
+            sample-app/build/outputs/apk/**/*.apk
+            !**/*-unsigned.apk
+            !**/*-unaligned.apk
+
+      - name: Create GitHub Release
+        if: ${{ github.event.inputs.create_release == 'true' && steps.find_outputs.outputs.apk != '' }}
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ github.event.inputs.version_name }}
+          name: Sample App v${{ github.event.inputs.version_name }}
+          body: |
+            ## Asciicast Compose Sample App v${{ github.event.inputs.version_name }}
+
+            Manual release build triggered by @${{ github.actor }}
+
+            ### Features
+            - 📼 Play asciicast recordings from device storage
+            - 🎨 9 bundled sample recordings for testing
+            - 🔴 Connect to live asciinema streams via WebSocket
+            - 🎮 Playback controls (play/pause/stop/speed)
+            - 🎯 Ergonomic Compose state holder API demonstration
+
+            ### Build Info
+            - Build Type: ${{ steps.find_outputs.outputs.build_type }}
+            - Minimum SDK: 26 (Android 8.0)
+            - Target SDK: 34 (Android 14)
+
+            ### Installation
+            1. Download the APK
+            2. Enable "Install from Unknown Sources" in Android settings
+            3. Open the APK to install
+            4. Try the bundled sample recordings or load your own .cast files!
+
+            ---
+            Built with [asciicast-compose](https://github.com/${{ github.repository }})
+          draft: true
+          files: |
+            ${{ steps.find_outputs.outputs.apk }}
