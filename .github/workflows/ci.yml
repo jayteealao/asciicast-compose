@@ -7,7 +7,8 @@ on:
     branches: [ main, develop ]
 
 jobs:
-  build:
+  build-and-test:
+    name: Build and Test
     runs-on: ubuntu-latest
 
     steps:
@@ -24,16 +25,13 @@ jobs:
     - name: Grant execute permission for gradlew
       run: chmod +x gradlew
 
-    - name: Build with Gradle
-      run: ./gradlew build --no-daemon
+    - name: Build all modules
+      run: ./gradlew build --no-daemon --stacktrace
 
-    - name: Run tests
-      run: ./gradlew test --no-daemon
+    - name: Run unit tests
+      run: ./gradlew test --no-daemon --stacktrace
 
-    - name: Run ktlint check
-      run: ./gradlew ktlintCheck --no-daemon
-
-    - name: Archive test results
+    - name: Upload test results
       if: always()
       uses: actions/upload-artifact@v4
       with:
@@ -41,14 +39,83 @@ jobs:
         path: |
           **/build/test-results/**/*.xml
           **/build/reports/**/*
+        retention-days: 7
 
-  # TODO: Add Rust build for vt-avt when avt integration is complete
+    - name: Upload build artifacts
+      if: success()
+      uses: actions/upload-artifact@v4
+      with:
+        name: build-artifacts
+        path: |
+          **/build/libs/*.jar
+          **/build/outputs/aar/*.aar
+        retention-days: 7
+
+  lint:
+    name: Code Style Check
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up JDK 17
+      uses: actions/setup-java@v4
+      with:
+        distribution: 'temurin'
+        java-version: '17'
+        cache: 'gradle'
+
+    - name: Grant execute permission for gradlew
+      run: chmod +x gradlew
+
+    - name: Run ktlint check
+      run: ./gradlew ktlintCheck --no-daemon
+
+    - name: Upload ktlint report
+      if: failure()
+      uses: actions/upload-artifact@v4
+      with:
+        name: ktlint-report
+        path: '**/build/reports/ktlint/**/*'
+        retention-days: 7
+
+  # TODO: Enable when vt-avt Rust implementation is complete
   # build-rust:
+  #   name: Build Rust vt-avt
   #   runs-on: ubuntu-latest
+  #
   #   steps:
-  #   - uses: actions/checkout@v4
-  #   - uses: actions-rs/toolchain@v1
+  #   - name: Checkout code
+  #     uses: actions/checkout@v4
+  #
+  #   - name: Set up Rust
+  #     uses: actions-rs/toolchain@v1
   #     with:
   #       toolchain: stable
-  #   - run: cargo install cargo-ndk
-  #   - run: cd vt-avt/rust && cargo ndk build --release
+  #       override: true
+  #
+  #   - name: Install cargo-ndk
+  #     run: cargo install cargo-ndk
+  #
+  #   - name: Set up Android NDK
+  #     uses: nttld/setup-ndk@v1
+  #     with:
+  #       ndk-version: r25c
+  #
+  #   - name: Build Rust library for Android
+  #     working-directory: vt-avt/rust
+  #     run: |
+  #       cargo ndk \
+  #         --target armeabi-v7a \
+  #         --target arm64-v8a \
+  #         --target x86_64 \
+  #         --platform 26 \
+  #         -- build --release
+  #
+  #   - name: Upload Rust artifacts
+  #     uses: actions/upload-artifact@v4
+  #     with:
+  #       name: rust-libs
+  #       path: vt-avt/rust/target/**/release/*.so
+  #       retention-days: 7
