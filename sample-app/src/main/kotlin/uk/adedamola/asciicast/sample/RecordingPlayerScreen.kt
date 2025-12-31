@@ -103,34 +103,78 @@ fun RecordingPlayerScreen() {
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
 
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            listOf(
-                "simple.cast" to "Simple",
-                "markers.cast" to "Markers",
-                "theme.cast" to "Theme",
-                "resizing.cast" to "Resize"
-            ).forEach { (filename, label) ->
-                OutlinedButton(
-                    onClick = {
-                        scope.launch {
-                            try {
-                                errorMessage = null
-                                val inputStream = context.assets.open("recordings/$filename")
-                                val source = RecordingSource(inputStream)
-                                player.load(source)
-                                player.play()
-                                selectedFileUri = Uri.parse("asset://recordings/$filename")
-                            } catch (e: Exception) {
-                                errorMessage = "Error loading sample: ${e.message}"
-                            }
-                        }
-                    },
-                    modifier = Modifier.weight(1f)
-                ) {
-                    Text(label, style = MaterialTheme.typography.labelSmall)
+        // Helper function to load a sample
+        val loadSample: (String) -> Unit = { filename ->
+            scope.launch {
+                try {
+                    errorMessage = null
+                    val inputStream = context.assets.open("recordings/$filename")
+                    val source = RecordingSource(inputStream)
+                    player.load(source)
+                    player.play()
+                    selectedFileUri = Uri.parse("asset://recordings/$filename")
+                } catch (e: Exception) {
+                    errorMessage = "Error loading sample: ${e.message}"
+                }
+            }
+        }
+
+        // All sample files in a grid layout
+        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            // Row 1
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                listOf(
+                    "simple.cast" to "Simple",
+                    "theme.cast" to "Theme",
+                    "input.cast" to "Input"
+                ).forEach { (filename, label) ->
+                    OutlinedButton(
+                        onClick = { loadSample(filename) },
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Text(label, style = MaterialTheme.typography.labelSmall)
+                    }
+                }
+            }
+
+            // Row 2
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                listOf(
+                    "markers.cast" to "Markers",
+                    "markers-input.cast" to "Mkrs+Input",
+                    "resizing.cast" to "Resize"
+                ).forEach { (filename, label) ->
+                    OutlinedButton(
+                        onClick = { loadSample(filename) },
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Text(label, style = MaterialTheme.typography.labelSmall)
+                    }
+                }
+            }
+
+            // Row 3
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                listOf(
+                    "loop.cast" to "Loop",
+                    "long.cast" to "Long",
+                    "bold-inverse-indexed.cast" to "Bold/Inv"
+                ).forEach { (filename, label) ->
+                    OutlinedButton(
+                        onClick = { loadSample(filename) },
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Text(label, style = MaterialTheme.typography.labelSmall)
+                    }
                 }
             }
         }
