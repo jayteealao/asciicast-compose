@@ -93,13 +93,52 @@ fun RecordingPlayerScreen() {
             },
             modifier = Modifier.fillMaxWidth()
         ) {
-            Text("Open .cast file")
+            Text("Open .cast file from device")
+        }
+
+        // Sample files section
+        Text(
+            text = "Or try a sample recording:",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            listOf(
+                "simple.cast" to "Simple",
+                "markers.cast" to "Markers",
+                "theme.cast" to "Theme",
+                "resizing.cast" to "Resize"
+            ).forEach { (filename, label) ->
+                OutlinedButton(
+                    onClick = {
+                        scope.launch {
+                            try {
+                                errorMessage = null
+                                val inputStream = context.assets.open("recordings/$filename")
+                                val source = RecordingSource(inputStream)
+                                player.load(source)
+                                player.play()
+                                selectedFileUri = Uri.parse("asset://recordings/$filename")
+                            } catch (e: Exception) {
+                                errorMessage = "Error loading sample: ${e.message}"
+                            }
+                        }
+                    },
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Text(label, style = MaterialTheme.typography.labelSmall)
+                }
+            }
         }
 
         // Show selected file
         selectedFileUri?.let { uri ->
             Text(
-                text = "File: ${uri.lastPathSegment}",
+                text = "Playing: ${uri.lastPathSegment ?: uri.path?.substringAfterLast('/') ?: "sample"}",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -179,7 +218,7 @@ fun RecordingPlayerScreen() {
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     Text(
-                        "Tap 'Open .cast file' to get started",
+                        "Select a sample recording or open a .cast file",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
