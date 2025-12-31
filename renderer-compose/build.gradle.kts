@@ -29,6 +29,7 @@ android {
 
 dependencies {
     api(project(":vt-api"))
+    api(project(":player-core"))
 
     implementation(compose.runtime)
     implementation(compose.foundation)
@@ -36,6 +37,7 @@ dependencies {
     implementation(compose.material3)
 
     implementation("androidx.compose.ui:ui-text:1.5.4")
+    implementation("androidx.lifecycle:lifecycle-runtime-compose:2.7.0")
 
     testImplementation("junit:junit:4.13.2")
     androidTestImplementation("androidx.test.ext:junit:1.1.5")

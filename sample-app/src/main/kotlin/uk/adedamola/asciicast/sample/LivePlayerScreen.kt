@@ -6,46 +6,35 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import kotlinx.coroutines.launch
-import uk.adedamola.asciicast.player.AsciinemaPlayer
-import uk.adedamola.asciicast.player.FakeTerminal
-import uk.adedamola.asciicast.player.PlayerState
 import uk.adedamola.asciicast.renderer.ScaleMode
 import uk.adedamola.asciicast.renderer.TerminalCanvas
-import uk.adedamola.asciicast.streaming.LiveSource
+import uk.adedamola.asciicast.renderer.rememberLivePlayerState
 
 /**
  * Screen for playing live asciinema streams.
+ *
+ * Demonstrates the ergonomic Compose API for live stream playback.
  */
 @Composable
 fun LivePlayerScreen() {
-    val scope = rememberCoroutineScope()
-
     var streamUrl by remember { mutableStateOf("") }
-    var isConnected by remember { mutableStateOf(false) }
+    var activeStreamUrl by remember { mutableStateOf<String?>(null) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
 
-    var liveSource by remember { mutableStateOf<LiveSource?>(null) }
-
-    // Create player with FakeTerminal (TODO: Replace with AvtVirtualTerminal when ready)
-    val player = remember {
-        AsciinemaPlayer(
-            virtualTerminal = FakeTerminal(),
-            scope = scope
-        )
-    }
-
-    val state by player.state.collectAsState()
-    val frame by player.frame.collectAsState()
-    val markers by player.markers.collectAsState()
-
-    // Cleanup on dispose
-    DisposableEffect(Unit) {
-        onDispose {
-            liveSource?.close()
-            player.close()
+    // Ergonomic player state - handles WebSocket lifecycle automatically
+    val playerState = activeStreamUrl?.let { wsUrl ->
+        try {
+            rememberLivePlayerState(
+                wsUrl = wsUrl,
+                autoPlay = true
+            )
+        } catch (e: Exception) {
+            errorMessage = "Connection failed: ${e.message}"
+            null
         }
     }
+
+    val isConnected = activeStreamUrl != null
 
     Column(
         modifier = Modifier
@@ -83,28 +72,19 @@ fun LivePlayerScreen() {
         ) {
             Button(
                 onClick = {
-                    scope.launch {
-                        try {
-                            errorMessage = null
+                    try {
+                        errorMessage = null
 
-                            // Construct WebSocket URL
-                            val wsUrl = if (streamUrl.startsWith("wss://") || streamUrl.startsWith("ws://")) {
-                                streamUrl
-                            } else {
-                                "wss://asciinema.org/ws/s/$streamUrl"
-                            }
-
-                            // Create and connect to live source
-                            val source = LiveSource(wsUrl)
-                            liveSource = source
-
-                            player.load(source)
-                            player.play()
-                            isConnected = true
-                        } catch (e: Exception) {
-                            errorMessage = "Connection failed: ${e.message}"
-                            isConnected = false
+                        // Construct WebSocket URL
+                        val wsUrl = if (streamUrl.startsWith("wss://") || streamUrl.startsWith("ws://")) {
+                            streamUrl
+                        } else {
+                            "wss://asciinema.org/ws/s/$streamUrl"
                         }
+
+                        activeStreamUrl = wsUrl
+                    } catch (e: Exception) {
+                        errorMessage = "Connection failed: ${e.message}"
                     }
                 },
                 enabled = streamUrl.isNotBlank() && !isConnected,
@@ -115,10 +95,7 @@ fun LivePlayerScreen() {
 
             OutlinedButton(
                 onClick = {
-                    liveSource?.close()
-                    liveSource = null
-                    player.stop()
-                    isConnected = false
+                    activeStreamUrl = null
                     errorMessage = null
                 },
                 enabled = isConnected,
@@ -171,8 +148,8 @@ fun LivePlayerScreen() {
             }
         }
 
-        // Terminal canvas
-        if (isConnected) {
+        // Terminal canvas and controls
+        if (playerState != null) {
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -182,16 +159,16 @@ fun LivePlayerScreen() {
                 )
             ) {
                 TerminalCanvas(
-                    frame = frame,
+                    frame = playerState.frame.value,
                     modifier = Modifier.fillMaxSize(),
                     scaleMode = ScaleMode.FitBoth
                 )
             }
 
             // Markers list (live streams can have markers too)
-            if (markers.isNotEmpty()) {
+            if (playerState.markers.value.isNotEmpty()) {
                 MarkerList(
-                    markers = markers,
+                    markers = playerState.markers.value,
                     onMarkerClick = { marker ->
                         // Markers in live streams are informational only
                         // No seeking supported
@@ -201,14 +178,12 @@ fun LivePlayerScreen() {
 
             // Player state indicator
             PlayerControlsBar(
-                state = state,
-                onPlay = { player.play() },
-                onPause = { player.pause() },
+                state = playerState.playbackState.value,
+                onPlay = { playerState.play() },
+                onPause = { playerState.pause() },
                 onStop = {
-                    liveSource?.close()
-                    liveSource = null
-                    player.stop()
-                    isConnected = false
+                    playerState.stop()
+                    activeStreamUrl = null
                 },
                 onSpeedChange = { /* Speed control not applicable to live streams */ }
             )
