@@ -7,7 +7,6 @@ import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 class AlisDecoderTest {
-
     private val decoder = AlisDecoder()
 
     @Test

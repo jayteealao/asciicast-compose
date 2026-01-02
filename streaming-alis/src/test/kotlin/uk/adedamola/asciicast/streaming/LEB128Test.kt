@@ -5,7 +5,6 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 
 class LEB128Test {
-
     @Test
     fun `encode and decode small values`() {
         testRoundTrip(0L)

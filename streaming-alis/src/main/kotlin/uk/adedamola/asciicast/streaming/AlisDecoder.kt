@@ -11,7 +11,7 @@ import uk.adedamola.asciicast.vt.Theme
  *
  * Protocol format:
  * - Magic: "ALiS\x01" (first message only)
- * - Events: [EventType byte][payload...]
+ * - Events: (EventType byte)(payload...)
  * - Integers: LEB128 unsigned
  * - Strings: LEB128 length + UTF-8 bytes
  */

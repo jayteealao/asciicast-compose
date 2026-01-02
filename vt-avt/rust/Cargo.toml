@@ -7,8 +7,8 @@ edition = "2021"
 crate-type = ["cdylib"]
 
 [dependencies]
-# TODO: Add avt dependency when implementing
-# avt = { version = "0.x", features = ["..."] }
+# AVT terminal emulator
+avt = { git = "https://github.com/asciinema/avt", branch = "main" }
 
 # JNI bindings
 jni = "0.21"

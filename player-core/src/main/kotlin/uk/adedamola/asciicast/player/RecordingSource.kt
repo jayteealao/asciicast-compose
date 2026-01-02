@@ -12,9 +12,8 @@ import java.io.InputStream
  * Playback source from an asciicast recording file.
  */
 class RecordingSource(
-    private val inputStream: InputStream
+    private val inputStream: InputStream,
 ) : PlaybackSource {
-
     private val parser = AsciicastParser()
     private lateinit var parsedHeader: uk.adedamola.asciicast.formats.AsciicastHeader
     private lateinit var parsedEvents: Sequence<TimedTermEvent>
@@ -32,11 +31,13 @@ class RecordingSource(
     }
 
     override val metadata: SourceMetadata
-        get() = SourceMetadata(
-            duration = parsedHeader.duration,
-            idleTimeLimit = parsedHeader.idle_time_limit,
-            title = parsedHeader.title,
-            command = parsedHeader.command,
-            seekable = false // TODO: Implement seeking with event indexing
-        )
+        get() =
+            SourceMetadata(
+                duration = parsedHeader.duration,
+                idleTimeLimit = parsedHeader.idle_time_limit,
+                title = parsedHeader.title,
+                command = parsedHeader.command,
+                // TODO: Implement seeking with event indexing
+                seekable = false,
+            )
 }

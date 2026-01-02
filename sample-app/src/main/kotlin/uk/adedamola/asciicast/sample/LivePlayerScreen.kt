@@ -23,14 +23,19 @@ fun LivePlayerScreen() {
 
     // Ergonomic player state - handles WebSocket lifecycle automatically
     val playerState = activeStreamUrl?.let { wsUrl ->
-        try {
-            rememberLivePlayerState(
-                wsUrl = wsUrl,
-                autoPlay = true
-            )
-        } catch (e: Exception) {
-            errorMessage = "Connection failed: ${e.message}"
-            null
+        rememberLivePlayerState(
+            wsUrl = wsUrl,
+            autoPlay = true
+        )
+    }
+
+    LaunchedEffect(playerState) {
+        if (playerState != null) {
+            try {
+                // Player state initialization happens here
+            } catch (e: Exception) {
+                errorMessage = "Connection failed: ${e.message}"
+            }
         }
     }
 

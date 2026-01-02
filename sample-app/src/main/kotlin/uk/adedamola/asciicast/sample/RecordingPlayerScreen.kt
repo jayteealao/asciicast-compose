@@ -21,6 +21,7 @@ import uk.adedamola.asciicast.renderer.rememberRecordingPlayerState
  */
 @Composable
 fun RecordingPlayerScreen() {
+    android.util.Log.d("RecordingPlayer", "RecordingPlayerScreen composable called")
     val context = LocalContext.current
 
     var selectedFileUri by remember { mutableStateOf<Uri?>(null) }
@@ -38,15 +39,24 @@ fun RecordingPlayerScreen() {
 
     // Ergonomic player state - handles lifecycle, cleanup, and Flow collection automatically
     val playerState = selectedFileUri?.let { uri ->
-        try {
-            rememberRecordingPlayerState(
-                context = context,
-                uri = uri,
-                autoPlay = true
-            )
-        } catch (e: Exception) {
-            errorMessage = "Error loading file: ${e.message}"
-            null
+        android.util.Log.d("RecordingPlayer", "Creating player state for URI: $uri")
+        rememberRecordingPlayerState(
+            context = context,
+            uri = uri,
+            autoPlay = true
+        )
+    }
+
+    LaunchedEffect(playerState) {
+        android.util.Log.d("RecordingPlayer", "LaunchedEffect triggered, playerState: $playerState")
+        if (playerState != null) {
+            try {
+                // Player state initialization happens here
+                android.util.Log.d("RecordingPlayer", "Player state initialized successfully")
+            } catch (e: Exception) {
+                errorMessage = "Error loading file: ${e.message}"
+                android.util.Log.e("RecordingPlayer", "Error in LaunchedEffect", e)
+            }
         }
     }
 
@@ -83,9 +93,11 @@ fun RecordingPlayerScreen() {
         val loadSample: (String) -> Unit = { filename ->
             try {
                 errorMessage = null
-                selectedFileUri = Uri.parse("asset://recordings/$filename")
+                selectedFileUri = Uri.parse("asset:///recordings/$filename")
+                android.util.Log.d("RecordingPlayer", "Loading sample: $filename, URI: $selectedFileUri")
             } catch (e: Exception) {
                 errorMessage = "Error loading sample: ${e.message}"
+                android.util.Log.e("RecordingPlayer", "Error loading sample", e)
             }
         }
 
@@ -102,7 +114,10 @@ fun RecordingPlayerScreen() {
                     "input.cast" to "Input"
                 ).forEach { (filename, label) ->
                     OutlinedButton(
-                        onClick = { loadSample(filename) },
+                        onClick = {
+                            android.util.Log.d("RecordingPlayer", "Button clicked: $label")
+                            loadSample(filename)
+                        },
                         modifier = Modifier.weight(1f)
                     ) {
                         Text(label, style = MaterialTheme.typography.labelSmall)
@@ -121,7 +136,10 @@ fun RecordingPlayerScreen() {
                     "resizing.cast" to "Resize"
                 ).forEach { (filename, label) ->
                     OutlinedButton(
-                        onClick = { loadSample(filename) },
+                        onClick = {
+                            android.util.Log.d("RecordingPlayer", "Button clicked: $label")
+                            loadSample(filename)
+                        },
                         modifier = Modifier.weight(1f)
                     ) {
                         Text(label, style = MaterialTheme.typography.labelSmall)
@@ -140,7 +158,10 @@ fun RecordingPlayerScreen() {
                     "bold-inverse-indexed.cast" to "Bold/Inv"
                 ).forEach { (filename, label) ->
                     OutlinedButton(
-                        onClick = { loadSample(filename) },
+                        onClick = {
+                            android.util.Log.d("RecordingPlayer", "Button clicked: $label")
+                            loadSample(filename)
+                        },
                         modifier = Modifier.weight(1f)
                     ) {
                         Text(label, style = MaterialTheme.typography.labelSmall)
@@ -177,6 +198,11 @@ fun RecordingPlayerScreen() {
 
         // Terminal canvas and controls
         if (playerState != null) {
+            val currentFrame = playerState.frame.value
+            androidx.compose.runtime.SideEffect {
+                android.util.Log.d("RecordingPlayer", "Frame update: $currentFrame")
+            }
+
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -186,7 +212,7 @@ fun RecordingPlayerScreen() {
                 )
             ) {
                 TerminalCanvas(
-                    frame = playerState.frame.value,
+                    frame = currentFrame,
                     modifier = Modifier.fillMaxSize(),
                     scaleMode = ScaleMode.FitBoth
                 )

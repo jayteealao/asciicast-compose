@@ -1,6 +1,8 @@
 package uk.adedamola.asciicast.renderer
 
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.gestures.rememberTransformableState
+import androidx.compose.foundation.gestures.transformable
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
@@ -8,7 +10,9 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color as ComposeColor
 import androidx.compose.ui.graphics.drawscope.DrawScope
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.*
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.sp
 import uk.adedamola.asciicast.vt.*
@@ -29,10 +33,19 @@ fun TerminalCanvas(
     modifier: Modifier = Modifier,
     fontFamily: androidx.compose.ui.text.font.FontFamily = androidx.compose.ui.text.font.FontFamily.Monospace,
     fontSize: Int = 14,
-    scaleMode: ScaleMode = ScaleMode.FitBoth,
+    scaleMode: ScaleMode = ScaleMode.None,
     themeOverride: Theme? = null
 ) {
     val theme = themeOverride ?: frame.theme
+
+    // Zoom and pan state
+    var zoomScale by remember { mutableFloatStateOf(1f) }
+    var panOffset by remember { mutableStateOf(Offset.Zero) }
+
+    val transformableState = rememberTransformableState { zoomChange, offsetChange, _ ->
+        zoomScale = (zoomScale * zoomChange).coerceIn(0.5f, 5f)
+        panOffset += offsetChange
+    }
 
     // Measure text to compute cell dimensions
     val textMeasurer = rememberTextMeasurer()
@@ -41,7 +54,17 @@ fun TerminalCanvas(
         measureCellDimensions(textMeasurer, fontSize, fontFamily)
     }
 
-    Canvas(modifier = modifier.fillMaxSize()) {
+    Canvas(
+        modifier = modifier
+            .fillMaxSize()
+            .transformable(state = transformableState)
+            .graphicsLayer(
+                scaleX = zoomScale,
+                scaleY = zoomScale,
+                translationX = panOffset.x,
+                translationY = panOffset.y
+            )
+    ) {
         val scale = computeScale(
             canvasSize = size,
             gridCols = frame.cols,
@@ -156,8 +179,10 @@ private fun DrawScope.drawTerminal(
     scale: Float
 ) {
     // Draw background
+    val bgColor = theme.background.toComposeColor()
+    android.util.Log.d("TerminalCanvas", "Drawing background: $bgColor, theme.background=${theme.background}, theme.foreground=${theme.foreground}")
     drawRect(
-        color = theme.background.toComposeColor(),
+        color = bgColor,
         size = size
     )
 
@@ -168,18 +193,21 @@ private fun DrawScope.drawTerminal(
         // Draw cell backgrounds for runs
         line.runs.forEach { run ->
             val x = run.colStart * cellWidth
-            val bgColor = if (run.style.reverse) {
-                theme.resolve(run.style.foreground).toComposeColor()
-            } else {
-                theme.resolve(run.style.background).toComposeColor()
-            }
 
-            if (bgColor != theme.background.toComposeColor()) {
-                drawRect(
-                    color = bgColor,
-                    topLeft = Offset(x, y),
-                    size = Size(run.length * cellWidth, cellHeight)
-                )
+            // Determine if we should draw a cell background
+            // Color.Default means "use theme default" - don't draw explicit background
+            val bgColorSource = if (run.style.reverse) run.style.foreground else run.style.background
+
+            if (bgColorSource != Color.Default) {
+                val bgColor = theme.resolve(bgColorSource).toComposeColor()
+
+                if (bgColor != theme.background.toComposeColor()) {
+                    drawRect(
+                        color = bgColor,
+                        topLeft = Offset(x, y),
+                        size = Size(run.length * cellWidth, cellHeight)
+                    )
+                }
             }
         }
 
@@ -190,6 +218,10 @@ private fun DrawScope.drawTerminal(
                 theme.resolve(run.style.background)
             } else {
                 theme.resolve(run.style.foreground)
+            }
+
+            if (rowIndex == 0) {
+                android.util.Log.d("TerminalCanvas", "Drawing run: text='${run.text}', colStart=${run.colStart}, x=$x, y=$y, color=$fgColor, fontSize=${fontSize * scale}")
             }
 
             drawText(

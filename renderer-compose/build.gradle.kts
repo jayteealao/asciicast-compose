@@ -2,6 +2,7 @@ plugins {
     id("com.android.library")
     kotlin("android")
     id("org.jetbrains.compose")
+    kotlin("plugin.compose")
 }
 
 android {
@@ -30,6 +31,8 @@ android {
 dependencies {
     api(project(":vt-api"))
     api(project(":player-core"))
+    implementation(project(":vt-avt"))
+    implementation(project(":streaming-alis"))
 
     implementation(compose.runtime)
     implementation(compose.foundation)

@@ -9,9 +9,8 @@ import uk.adedamola.asciicast.vt.*
  */
 class FakeTerminal(
     initialCols: Int = 80,
-    initialRows: Int = 24
+    initialRows: Int = 24,
 ) : VirtualTerminal {
-
     override var cols: Int = initialCols
         private set
 
@@ -29,8 +28,11 @@ class FakeTerminal(
 
     sealed class Operation {
         data class Reset(val cols: Int, val rows: Int, val theme: Theme?, val initData: String?) : Operation()
+
         data class Resize(val cols: Int, val rows: Int) : Operation()
+
         data class FeedUtf8(val text: String) : Operation()
+
         data class Feed(val bytes: ByteArray) : Operation() {
             override fun equals(other: Any?): Boolean {
                 if (this === other) return true
@@ -40,12 +42,20 @@ class FakeTerminal(
 
             override fun hashCode(): Int = bytes.contentHashCode()
         }
+
         data object Snapshot : Operation()
+
         data object PollDiff : Operation()
+
         data object Close : Operation()
     }
 
-    override fun reset(cols: Int, rows: Int, theme: Theme?, initData: String?) {
+    override fun reset(
+        cols: Int,
+        rows: Int,
+        theme: Theme?,
+        initData: String?,
+    ) {
         operations.add(Operation.Reset(cols, rows, theme, initData))
         this.cols = cols
         this.rows = rows
@@ -54,7 +64,10 @@ class FakeTerminal(
         initData?.let { fedText.append(it) }
     }
 
-    override fun resize(cols: Int, rows: Int) {
+    override fun resize(
+        cols: Int,
+        rows: Int,
+    ) {
         operations.add(Operation.Resize(cols, rows))
         this.cols = cols
         this.rows = rows
@@ -73,7 +86,7 @@ class FakeTerminal(
     override fun snapshot(): TerminalFrame {
         operations.add(Operation.Snapshot)
         return TerminalFrame.empty(cols, rows, currentTheme).copy(
-            cursor = currentCursor
+            cursor = currentCursor,
         )
     }
 

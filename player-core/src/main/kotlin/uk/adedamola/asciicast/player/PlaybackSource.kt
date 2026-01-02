@@ -7,7 +7,7 @@ import uk.adedamola.asciicast.vt.TimedTermEvent
 /**
  * Source of terminal events for playback.
  */
-sealed interface PlaybackSource {
+interface PlaybackSource {
     /**
      * Initialize the source and return the initial terminal state.
      */
@@ -32,5 +32,5 @@ data class SourceMetadata(
     val idleTimeLimit: Double? = null,
     val title: String? = null,
     val command: String? = null,
-    val seekable: Boolean = false
+    val seekable: Boolean = false,
 )

@@ -4,19 +4,19 @@ import uk.adedamola.asciicast.vt.TermEvent
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
-import kotlin.test.assertTrue
 
 class AsciicastParserTest {
     private val parser = AsciicastParser()
 
     @Test
     fun `parse v2 asciicast with output events`() {
-        val cast = """
+        val cast =
+            """
             {"version":2,"width":80,"height":24,"timestamp":1234567890}
             [0.0,"o","Hello "]
             [0.5,"o","World\r\n"]
             [1.0,"o","$ "]
-        """.trimIndent()
+            """.trimIndent()
 
         val (header, events) = parser.parse(cast.byteInputStream())
 
@@ -45,12 +45,13 @@ class AsciicastParserTest {
 
     @Test
     fun `parse v3 asciicast with interval times`() {
-        val cast = """
+        val cast =
+            """
             {"version":3,"width":80,"height":24}
             [0.0,"o","First"]
             [0.5,"o","Second"]
             [0.25,"o","Third"]
-        """.trimIndent()
+            """.trimIndent()
 
         val (header, events) = parser.parse(cast.byteInputStream())
 
@@ -67,11 +68,12 @@ class AsciicastParserTest {
 
     @Test
     fun `parse resize event`() {
-        val cast = """
+        val cast =
+            """
             {"version":2,"width":80,"height":24}
             [0.0,"r","100x30"]
             [1.0,"o","After resize"]
-        """.trimIndent()
+            """.trimIndent()
 
         val (_, events) = parser.parse(cast.byteInputStream())
         val eventList = events.toList()
@@ -84,11 +86,12 @@ class AsciicastParserTest {
 
     @Test
     fun `parse marker event`() {
-        val cast = """
+        val cast =
+            """
             {"version":2,"width":80,"height":24}
             [0.0,"m","Chapter 1"]
             [1.0,"o","content"]
-        """.trimIndent()
+            """.trimIndent()
 
         val (_, events) = parser.parse(cast.byteInputStream())
         val eventList = events.toList()
@@ -100,11 +103,12 @@ class AsciicastParserTest {
 
     @Test
     fun `parse exit event (v3)`() {
-        val cast = """
+        val cast =
+            """
             {"version":3,"width":80,"height":24}
             [0.0,"o","Running..."]
             [1.0,"x",0]
-        """.trimIndent()
+            """.trimIndent()
 
         val (_, events) = parser.parse(cast.byteInputStream())
         val eventList = events.toList()
@@ -116,12 +120,13 @@ class AsciicastParserTest {
 
     @Test
     fun `ignore unknown event codes`() {
-        val cast = """
+        val cast =
+            """
             {"version":2,"width":80,"height":24}
             [0.0,"o","Before"]
             [0.5,"z","unknown event"]
             [1.0,"o","After"]
-        """.trimIndent()
+            """.trimIndent()
 
         val (_, events) = parser.parse(cast.byteInputStream())
         val eventList = events.toList()
@@ -134,11 +139,12 @@ class AsciicastParserTest {
 
     @Test
     fun `parse input event (ignored for playback)`() {
-        val cast = """
+        val cast =
+            """
             {"version":2,"width":80,"height":24}
             [0.0,"i","ls\r\n"]
             [0.5,"o","file1  file2"]
-        """.trimIndent()
+            """.trimIndent()
 
         val (_, events) = parser.parse(cast.byteInputStream())
         val eventList = events.toList()
@@ -151,10 +157,11 @@ class AsciicastParserTest {
 
     @Test
     fun `header contains optional metadata`() {
-        val cast = """
+        val cast =
+            """
             {"version":2,"width":120,"height":40,"timestamp":1234567890,"duration":10.5,"idle_time_limit":2.0,"title":"Demo","command":"bash"}
             [0.0,"o","test"]
-        """.trimIndent()
+            """.trimIndent()
 
         val (header, _) = parser.parse(cast.byteInputStream())
 
@@ -169,13 +176,14 @@ class AsciicastParserTest {
 
     @Test
     fun `toInitEvent creates initial terminal state`() {
-        val header = AsciicastHeader(
-            version = 2,
-            width = 80,
-            height = 24,
-            timestamp = null,
-            duration = null
-        )
+        val header =
+            AsciicastHeader(
+                version = 2,
+                width = 80,
+                height = 24,
+                timestamp = null,
+                duration = null,
+            )
 
         val initEvent = header.toInitEvent()
 

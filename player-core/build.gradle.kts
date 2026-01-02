@@ -14,7 +14,6 @@ kotlin {
 dependencies {
     api(project(":vt-api"))
     api(project(":formats"))
-    api(project(":streaming-alis"))
 
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.7.3")
 

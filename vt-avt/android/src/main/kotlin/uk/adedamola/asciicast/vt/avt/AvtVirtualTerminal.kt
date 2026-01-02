@@ -73,9 +73,16 @@ class AvtVirtualTerminal(
 
         return if (snapshotBytes.isEmpty()) {
             // Fallback for TODO implementation
+            android.util.Log.w("AvtVT", "Snapshot bytes are empty")
             TerminalFrame.empty(cols, rows, currentTheme)
         } else {
-            decodeSnapshot(snapshotBytes)
+            try {
+                android.util.Log.d("AvtVT", "Decoding snapshot, bytes: ${snapshotBytes.size}")
+                decodeSnapshot(snapshotBytes)
+            } catch (e: Exception) {
+                android.util.Log.e("AvtVT", "Error decoding snapshot", e)
+                TerminalFrame.empty(cols, rows, currentTheme)
+            }
         }
     }
 
@@ -99,17 +106,101 @@ class AvtVirtualTerminal(
     /**
      * Decode binary snapshot format.
      *
-     * TODO: Implement this to match the encoding in lib.rs
+     * Matches the encoding in lib.rs encode_snapshot()
      */
     private fun decodeSnapshot(bytes: ByteArray): TerminalFrame {
-        // TODO: Decode the binary format:
-        // - Read cols, rows (varint)
-        // - Read cursor position and visibility
-        // - Read style table
-        // - Read lines as runs
-        //
-        // For now, return placeholder
-        return TerminalFrame.empty(cols, rows, currentTheme)
+        val buffer = ByteBuffer.wrap(bytes)
+
+        // Read size
+        val cols = buffer.readVarint()
+        val rows = buffer.readVarint()
+
+        // Read cursor
+        val cursorCol = buffer.readVarint()
+        val cursorRow = buffer.readVarint()
+        val cursorVisible = buffer.get() == 1.toByte()
+
+        // Read lines
+        val lines = mutableListOf<TerminalLine>()
+        for (lineIdx in 0 until rows) {
+            lines.add(decodeLine(buffer))
+        }
+
+        return TerminalFrame(
+            cols = cols,
+            rows = rows,
+            lines = lines,
+            cursor = Cursor(
+                row = cursorRow,
+                col = cursorCol,
+                visible = cursorVisible
+            ),
+            theme = currentTheme,
+            title = null
+        )
+    }
+
+    private fun decodeLine(buffer: ByteBuffer): TerminalLine {
+        val runCount = buffer.readVarint()
+        val runs = mutableListOf<TextRun>()
+
+        for (i in 0 until runCount) {
+            val colStart = buffer.readVarint()
+            val textLen = buffer.readVarint()
+            val style = decodeCellStyle(buffer)
+
+            val textBytes = ByteArray(textLen)
+            buffer.get(textBytes)
+            val text = String(textBytes, Charsets.UTF_8)
+
+            runs.add(TextRun(
+                colStart = colStart,
+                text = text,
+                style = style
+            ))
+        }
+
+        return TerminalLine(runs = runs)
+    }
+
+    private fun decodeCellStyle(buffer: ByteBuffer): CellStyle {
+        // Decode foreground
+        val fgType = buffer.get().toInt()
+        val foreground = when (fgType) {
+            0 -> Color.Indexed(buffer.get().toInt() and 0xFF)
+            1 -> Color.Rgb(
+                r = buffer.get().toInt() and 0xFF,
+                g = buffer.get().toInt() and 0xFF,
+                b = buffer.get().toInt() and 0xFF
+            )
+            else -> null // 2 = None
+        }
+
+        // Decode background
+        val bgType = buffer.get().toInt()
+        val background = when (bgType) {
+            0 -> Color.Indexed(buffer.get().toInt() and 0xFF)
+            1 -> Color.Rgb(
+                r = buffer.get().toInt() and 0xFF,
+                g = buffer.get().toInt() and 0xFF,
+                b = buffer.get().toInt() and 0xFF
+            )
+            else -> null // 2 = None
+        }
+
+        // Decode attributes
+        val attrs = buffer.get().toInt() and 0xFF
+
+        return CellStyle(
+            foreground = foreground ?: Color.Default,
+            background = background ?: Color.Default,
+            bold = (attrs and 0x01) != 0,
+            italic = (attrs and 0x02) != 0,
+            underline = (attrs and 0x04) != 0,
+            strikethrough = (attrs and 0x08) != 0,
+            blink = (attrs and 0x10) != 0,
+            reverse = (attrs and 0x20) != 0
+        )
     }
 
     /**

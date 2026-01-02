@@ -11,7 +11,7 @@ data class TermCapabilities(
     val strikethrough: Boolean = true,
     val altScreen: Boolean = true,
     val mouse: Boolean = false,
-    val bracketed Paste: Boolean = false,
+    val bracketedPaste: Boolean = false,
     val differentialUpdates: Boolean = false
 ) {
     companion object {

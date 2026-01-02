@@ -13,6 +13,7 @@ kotlin {
 
 dependencies {
     api(project(":vt-api"))
+    api(project(":player-core"))
 
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
     implementation("com.squareup.okio:okio:3.7.0")

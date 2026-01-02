@@ -14,7 +14,7 @@ import uk.adedamola.asciicast.vt.*
  */
 class AsciinemaPlayer(
     private val virtualTerminal: VirtualTerminal,
-    private val scope: CoroutineScope
+    private val scope: CoroutineScope,
 ) {
     private val _state = MutableStateFlow<PlayerState>(PlayerState.Idle)
     val state: StateFlow<PlayerState> = _state.asStateFlow()
@@ -55,12 +55,11 @@ class AsciinemaPlayer(
                 cols = initEvent.cols,
                 rows = initEvent.rows,
                 theme = initEvent.theme,
-                initData = initEvent.initData
+                initData = initEvent.initData,
             )
 
             _frame.value = virtualTerminal.snapshot()
             _state.value = PlayerState.Paused(0)
-
         } catch (e: Exception) {
             _state.value = PlayerState.Error("Failed to load source", e)
         }
@@ -76,16 +75,17 @@ class AsciinemaPlayer(
 
         _state.value = PlayerState.Playing(playbackSpeed)
 
-        playbackJob = scope.launch {
-            try {
-                playEvents(source)
-                _state.value = PlayerState.Ended
-            } catch (e: CancellationException) {
-                throw e
-            } catch (e: Exception) {
-                _state.value = PlayerState.Error("Playback error", e)
+        playbackJob =
+            scope.launch {
+                try {
+                    playEvents(source)
+                    _state.value = PlayerState.Ended
+                } catch (e: CancellationException) {
+                    throw e
+                } catch (e: Exception) {
+                    _state.value = PlayerState.Error("Playback error", e)
+                }
             }
-        }
     }
 
     /**
@@ -149,16 +149,19 @@ class AsciinemaPlayer(
      * Core playback loop.
      */
     private suspend fun playEvents(source: PlaybackSource) {
+        println("[AsciinemaPlayer] playEvents: Starting playback loop")
         val markerList = mutableListOf<Marker>()
         var accumulatedDelayMicros = 0L
 
         source.events().collect { timedEvent ->
             val (event, deltaMicros) = timedEvent
+            println("[AsciinemaPlayer] playEvents: Received event: $event, delta: $deltaMicros")
 
             // Apply idle time compression
-            val effectiveDelta = idleTimeLimitMicros?.let { limit ->
-                minOf(deltaMicros, limit)
-            } ?: deltaMicros
+            val effectiveDelta =
+                idleTimeLimitMicros?.let { limit ->
+                    minOf(deltaMicros, limit)
+                } ?: deltaMicros
 
             // Apply speed adjustment and delay
             val adjustedDelayMicros = (effectiveDelta / playbackSpeed).toLong()
@@ -176,7 +179,7 @@ class AsciinemaPlayer(
                         cols = event.cols,
                         rows = event.rows,
                         theme = event.theme,
-                        initData = event.initData
+                        initData = event.initData,
                     )
                 }
 
@@ -209,6 +212,8 @@ class AsciinemaPlayer(
 
             // Update frame
             _frame.value = virtualTerminal.snapshot()
+            println("[AsciinemaPlayer] playEvents: Frame updated, lines with content: ${_frame.value.lines.count { it.runs.isNotEmpty() }}")
         }
+        println("[AsciinemaPlayer] playEvents: Playback loop ended")
     }
 }

@@ -28,5 +28,5 @@ sealed class PlayerState {
  */
 data class Marker(
     val timeMicros: Long,
-    val label: String
+    val label: String,
 )

@@ -8,6 +8,7 @@ import kotlinx.coroutines.CoroutineScope
 import uk.adedamola.asciicast.player.*
 import uk.adedamola.asciicast.vt.TerminalFrame
 import uk.adedamola.asciicast.vt.VirtualTerminal
+import uk.adedamola.asciicast.vt.avt.AvtVirtualTerminal
 
 /**
  * State holder for Asciinema player in Compose.
@@ -152,10 +153,20 @@ fun rememberAsciinemaPlayerState(
     // Load source when sourceKey changes
     LaunchedEffect(sourceKey) {
         if (sourceKey != null) {
-            val playbackSource = source()
-            player.load(playbackSource)
-            if (autoPlay) {
-                player.play()
+            android.util.Log.d("AsciinemaPlayer", "LaunchedEffect: Loading source for key: $sourceKey")
+            try {
+                val playbackSource = source()
+                android.util.Log.d("AsciinemaPlayer", "LaunchedEffect: Calling player.load()")
+                player.load(playbackSource)
+                android.util.Log.d("AsciinemaPlayer", "LaunchedEffect: Load complete, autoPlay=$autoPlay")
+                if (autoPlay) {
+                    android.util.Log.d("AsciinemaPlayer", "LaunchedEffect: Calling player.play()")
+                    player.play()
+                    android.util.Log.d("AsciinemaPlayer", "LaunchedEffect: Play called")
+                }
+            } catch (e: Exception) {
+                android.util.Log.e("AsciinemaPlayer", "LaunchedEffect: Error loading/playing", e)
+                throw e
             }
         }
     }
@@ -189,7 +200,7 @@ fun rememberAsciinemaPlayerState(
  *
  * @param context Android context for opening the URI
  * @param uri URI of the .cast file (can be content://, file://, or asset://)
- * @param vtFactory VirtualTerminal factory. Defaults to FakeTerminal (replace with AvtVirtualTerminal when ready).
+ * @param vtFactory VirtualTerminal factory. Defaults to AvtVirtualTerminal.
  * @param autoPlay Whether to start playing automatically. Default: true.
  * @param initialSpeed Initial playback speed. Default: 1.0f.
  * @param initialIdleTimeLimit Idle time compression limit in seconds. Default: null.
@@ -210,7 +221,7 @@ fun rememberAsciinemaPlayerState(
 fun rememberRecordingPlayerState(
     context: Context,
     uri: Uri,
-    vtFactory: () -> VirtualTerminal = { FakeTerminal() },
+    vtFactory: () -> VirtualTerminal = { AvtVirtualTerminal() },
     autoPlay: Boolean = true,
     initialSpeed: Float = 1.0f,
     initialIdleTimeLimit: Double? = null
@@ -218,16 +229,28 @@ fun rememberRecordingPlayerState(
     return rememberAsciinemaPlayerState(
         sourceKey = uri,
         source = {
+            android.util.Log.d("AsciinemaPlayer", "Creating source for URI: $uri")
             val inputStream = if (uri.scheme == "asset") {
                 // Handle asset:// URIs
                 val assetPath = uri.path?.removePrefix("/") ?: uri.toString().removePrefix("asset://")
-                context.assets.open(assetPath)
+                android.util.Log.d("AsciinemaPlayer", "Opening asset: $assetPath")
+                try {
+                    context.assets.open(assetPath).also {
+                        android.util.Log.d("AsciinemaPlayer", "Asset opened successfully")
+                    }
+                } catch (e: Exception) {
+                    android.util.Log.e("AsciinemaPlayer", "Failed to open asset: $assetPath", e)
+                    throw e
+                }
             } else {
                 // Handle content://, file://, etc.
                 context.contentResolver.openInputStream(uri)
                     ?: throw IllegalArgumentException("Cannot open URI: $uri")
             }
-            RecordingSource(inputStream)
+            android.util.Log.d("AsciinemaPlayer", "Creating RecordingSource")
+            RecordingSource(inputStream).also {
+                android.util.Log.d("AsciinemaPlayer", "RecordingSource created")
+            }
         },
         vtFactory = vtFactory,
         autoPlay = autoPlay,
@@ -246,7 +269,7 @@ fun rememberRecordingPlayerState(
  * when the composable leaves composition or when a new [wsUrl] is provided.
  *
  * @param wsUrl WebSocket URL (e.g., "wss://asciinema.org/ws/s/TOKEN")
- * @param vtFactory VirtualTerminal factory. Defaults to FakeTerminal.
+ * @param vtFactory VirtualTerminal factory. Defaults to AvtVirtualTerminal.
  * @param autoPlay Whether to start playing automatically. Default: true.
  * @return An [AsciinemaPlayerState] for the live stream
  *
@@ -263,7 +286,7 @@ fun rememberRecordingPlayerState(
 @Composable
 fun rememberLivePlayerState(
     wsUrl: String,
-    vtFactory: () -> VirtualTerminal = { FakeTerminal() },
+    vtFactory: () -> VirtualTerminal = { AvtVirtualTerminal() },
     autoPlay: Boolean = true
 ): AsciinemaPlayerState {
     // Note: LiveSource needs to be closed separately

@@ -17,10 +17,11 @@ import java.io.InputStreamReader
  * Unknown event codes are ignored (no crash).
  */
 class AsciicastParser {
-    private val json = Json {
-        ignoreUnknownKeys = true
-        isLenient = true
-    }
+    private val json =
+        Json {
+            ignoreUnknownKeys = true
+            isLenient = true
+        }
 
     /**
      * Parse asciicast from an InputStream.
@@ -31,8 +32,9 @@ class AsciicastParser {
         val reader = BufferedReader(InputStreamReader(input, Charsets.UTF_8))
 
         // Parse header (first line)
-        val headerLine = reader.readLine()
-            ?: throw IllegalArgumentException("Empty asciicast file")
+        val headerLine =
+            reader.readLine()
+                ?: throw IllegalArgumentException("Empty asciicast file")
 
         val header = json.decodeFromString<AsciicastHeader>(headerLine)
 
@@ -41,20 +43,21 @@ class AsciicastParser {
         }
 
         // Parse events
-        val events = sequence {
-            var previousTime = 0.0
+        val events =
+            sequence {
+                var previousTime = 0.0
 
-            for (line in reader.lineSequence()) {
-                if (line.isBlank()) continue
+                for (line in reader.lineSequence()) {
+                    if (line.isBlank()) continue
 
-                val event = parseEvent(line, header.version, previousTime) ?: continue
+                    val event = parseEvent(line, header.version, previousTime) ?: continue
 
-                val (termEvent, absoluteTime) = event
-                previousTime = absoluteTime
+                    val (termEvent, absoluteTime) = event
+                    previousTime = absoluteTime
 
-                yield(termEvent)
+                    yield(termEvent)
+                }
             }
-        }
 
         return header to events
     }
@@ -67,7 +70,7 @@ class AsciicastParser {
     private fun parseEvent(
         line: String,
         version: Int,
-        previousTime: Double
+        previousTime: Double,
     ): Pair<TimedTermEvent, Double>? {
         val array = json.parseToJsonElement(line).jsonArray
 
@@ -80,47 +83,49 @@ class AsciicastParser {
         val code = array[1].jsonPrimitive.content
 
         // Calculate absolute time based on version
-        val absoluteTime = when (version) {
-            2 -> timeValue // v2: absolute time
-            3 -> previousTime + timeValue // v3: delta time
-            else -> return null
-        }
+        val absoluteTime =
+            when (version) {
+                2 -> timeValue // v2: absolute time
+                3 -> previousTime + timeValue // v3: delta time
+                else -> return null
+            }
 
         // Calculate delta in microseconds
         val deltaMicros = ((absoluteTime - previousTime) * 1_000_000).toLong()
 
-        val termEvent = when (code) {
-            EventCode.OUTPUT -> {
-                val data = array.getOrNull(2)?.jsonPrimitive?.content ?: ""
-                TermEvent.Output(data)
-            }
+        val termEvent =
+            when (code) {
+                EventCode.OUTPUT -> {
+                    val data = array.getOrNull(2)?.jsonPrimitive?.content ?: ""
+                    TermEvent.Output(data)
+                }
 
-            EventCode.INPUT -> {
-                val data = array.getOrNull(2)?.jsonPrimitive?.content ?: ""
-                TermEvent.Input(data)
-            }
+                EventCode.INPUT -> {
+                    val data = array.getOrNull(2)?.jsonPrimitive?.content ?: ""
+                    TermEvent.Input(data)
+                }
 
-            EventCode.RESIZE -> {
-                val sizeStr = array.getOrNull(2)?.jsonPrimitive?.content ?: "80x24"
-                val (cols, rows) = parseSizeString(sizeStr)
-                TermEvent.Resize(cols, rows)
-            }
+                EventCode.RESIZE -> {
+                    val sizeStr = array.getOrNull(2)?.jsonPrimitive?.content ?: "80x24"
+                    val (cols, rows) = parseSizeString(sizeStr)
+                    TermEvent.Resize(cols, rows)
+                }
 
-            EventCode.MARKER -> {
-                val label = array.getOrNull(2)?.jsonPrimitive?.content ?: ""
-                TermEvent.Marker(label)
-            }
+                EventCode.MARKER -> {
+                    val label = array.getOrNull(2)?.jsonPrimitive?.content ?: ""
+                    TermEvent.Marker(label)
+                }
 
-            EventCode.EXIT -> {
-                val status = array.getOrNull(2)?.jsonPrimitive?.intOrNull ?: 0
-                TermEvent.Exit(status)
-            }
+                EventCode.EXIT -> {
+                    val status = array.getOrNull(2)?.jsonPrimitive?.intOrNull ?: 0
+                    TermEvent.Exit(status)
+                }
 
-            else -> {
-                // Unknown event code, ignore as per spec
-                return null
+                else -> {
+                    // Unknown event code, ignore as per spec
+                    return null
+                }
             }
-        }
 
         return TimedTermEvent(termEvent, deltaMicros) to absoluteTime
     }
@@ -145,9 +150,10 @@ class AsciicastParser {
  */
 fun AsciicastHeader.toInitEvent(): TermEvent.Init {
     return TermEvent.Init(
-        cols = width,
-        rows = height,
-        theme = null, // TODO: Parse theme from header if present
-        initData = null
+        cols = cols,
+        rows = rows,
+        // TODO: Parse theme from header if present
+        theme = null,
+        initData = null,
     )
 }
